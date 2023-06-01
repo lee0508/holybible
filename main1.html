@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bible Page (성경)</title>
+  <script src="https://code.jquery.com/jquery-3.7.0.min.js"
+    integrity="sha256-2Pmvv0kuTBOenSvLm6bvfBSSHrUJ+3A7x6P5Ebd07/g=" crossorigin="anonymous"></script>
+  <style>
+    /* CSS styles */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background-color: #333;
+      color: #fff;
+      padding: 10px;
+      text-align: right;
+    }
+
+    header a {
+      color: #fff;
+      margin-left: 10px;
+      text-decoration: none;
+    }
+
+    main {
+      padding: 20px;
+    }
+
+    form {
+      margin-bottom: 20px;
+    }
+
+    label {
+      font-weight: bold;
+    }
+
+    textarea {
+      width: 100%;
+      height: 200px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th,
+    td {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+
+    th {
+      background-color: #333;
+      color: #fff;
+    }
+  </style>
+
+</head>
+
+<body>
+  <header>
+    <a href="#" id="addWords">Add Words</a>
+    <a href="#" id="searchWords">Search Words</a>
+  </header>
+
+  <main>
+    <h1>Bible Database</h1>
+
+    <form id="bibleForm">
+      <label for="bookName">Book Name:</label>
+      <input type="text" id="bookName" required>
+
+      <label for="chapterNumber">Chapter Number:</label>
+      <input type="number" id="chapterNumber" required>
+
+      <label for="sectionNumber">Section Number:</label>
+      <input type="number" id="sectionNumber" required>
+
+      <label for="sections">Sections:</label>
+      <textarea id="sections" required></textarea>
+
+      <button type="submit">Save</button>
+    </form>
+
+    <div id="databaseOutput">
+      <!-- The saved data or search results will be displayed here -->
+    </div>
+  </main>
+
+  <script>
+    // jQuery code
+    $(document).ready(function () {
+      // Menu navigation
+      $('#addWords').click(function (event) {
+        event.preventDefault();
+        var linkText = $(this).text();
+        alert('You clicked ' + linkText);
+        // Implement your navigation logic here
+      });
+
+      $('#searchWords').click(function (event) {
+        event.preventDefault();
+        var linkText = $(this).text();
+        alert('You clicked ' + linkText);
+        // Implement your search logic here
+
+        // Get the search words
+        var searchWords = prompt("Enter the search words separated by commas:").trim().split(',');
+
+        // Remove any leading or trailing spaces from the search words
+        if (searchWords != "") {
+          searchWords = searchWords.map(function (word) {
+            return word.trim();
+          });
+        }
+        // Only proceed if there are at least two search words
+        if (searchWords.length >= 2) {
+          // Send the search words to the server using AJAX (Assuming you have a PHP file to handle the search)
+          $.ajax({
+            url: 'search_data.php',
+            type: 'POST',
+            data: JSON.stringify(searchWords),
+            contentType: 'application/json',
+            success: function (response) {
+              // Display the search results in a table format
+              var tableHtml = '<table><tr><th>Book Name</th><th>Chapter Number</th><th>Sections</th></tr>';
+
+              // Parse the search results JSON data
+              var searchResults = JSON.parse(response);
+
+              // Iterate over the search results and build the table rows
+              searchResults.forEach(function (result) {
+                tableHtml += '<tr>';
+                tableHtml += '<td>' + result.bookName + '</td>';
+                tableHtml += '<td>' + result.chapterNumber + '</td>';
+                tableHtml += '<td>' + result.sectionNumber + '</td>';
+                tableHtml += '<td>' + result.sections + '</td>';
+                tableHtml += '</tr>';
+              });
+
+              // Close the table
+              tableHtml += '</table>';
+
+              // Display the table with search results
+              $('#databaseOutput').html(tableHtml);
+            }
+          });
+        }
+      });
+
+      $('#bibleForm').submit(function (event) {
+        event.preventDefault(); // Prevent form submission
+
+        // Get the input values
+        var bookName = $('#bookName').val();
+        var chapterNumber = $('#chapterNumber').val();
+        var sectionNumber = $('#sectionNumber').val();
+        var sections = $('#sections').val();
+
+        // Check if the section number is empty, generate and assign a new section number
+        /* if (!sectionNumber) {
+          sectionNumber = generateSectionNumber(bookName, chapterNumber);
+          $('#sectionNumber').val(sectionNumber); // Update the input field with the new section number
+        } else {
+          sectionNumber = parseInt(sectionNumber) + 1; // Increment the section number
+          $('#sectionNumber').val(sectionNumber); // Update the input field with the new section number
+        } */
+
+        // Create an object to hold the data
+        var bibleData = {
+          bookName: bookName,
+          chapterNumber: chapterNumber,
+          sectionNumber: sectionNumber,
+          sections: sections
+        };
+
+        // Send the data to the server using AJAX (Assuming you have a PHP file to handle the data)
+        $.ajax({
+          url: 'save_data.php',
+          type: 'POST',
+          data: JSON.stringify(bibleData),
+          contentType: 'application/json',
+          success: function (response) {
+            // Data saved successfully, display the response
+            $('#databaseOutput').html(response);
+            var sectionNumber = generateSectionNumber(bookName, chapterNumber);
+            console.log(sectionNumber);
+            $('#sectionNumber').val(sectionNumber);
+          }
+        });
+
+        // Clear the form fields
+        //$('#bookName').val('');
+        //$('#chapterNumber').val('');
+        //$('#sectionNumber').val('');
+        $('#sections').val('');
+      });
+    });
+
+
+
+
+    // Function to generate a unique section number
+    function generateSectionNumber(bookName, chapterNumber) {
+      var sectionNumber = 1;
+      var lastSectionNumber = 0;
+
+      // Check the last saved section number in the database (Assuming you have a PHP file to handle the retrieval)
+      $.ajax({
+        url: 'last_section_number.php',
+        type: 'POST',
+        async: false,
+        data: {
+          bookName: bookName,
+          chapterNumber: chapterNumber
+        },
+        success: function (response) {
+          lastSectionNumber = parseInt(response);
+        },
+        error: function (xhr, status, error) {
+          // Display an error message if the AJAX request fails
+          console.log(xhr.responseText);
+          alert('An error occurred while retrieving the last section number.');
+        }
+      });
+
+      // Increment the last section number
+      if (!isNaN(lastSectionNumber)) {
+        sectionNumber = lastSectionNumber + 1;
+      }
+
+      return sectionNumber;
+    }    
+  </script>
+</body>
+
+</html>
